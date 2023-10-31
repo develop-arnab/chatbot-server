@@ -2,8 +2,7 @@ import mongoose from 'mongoose';
 // const { Schema } = mongoose;
 const ChatRoomSchema = new mongoose.Schema(
 	{
-		room: { type: String, required: true, unique: true },
-		doc: { type: String, required: true },
+		room: { type: String, required: true},
         users: { type: Array, required: false },
         messages: { type: Array, required: false },
 	},

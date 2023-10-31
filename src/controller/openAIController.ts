@@ -6,20 +6,12 @@ import { OpenAIEmbeddings } from "langchain/embeddings";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
-import { BufferMemory } from "langchain/memory";
-import { PromptTemplate } from "langchain/prompts";
-import { ConversationChain } from "langchain/chains";
-import axios from "axios";
-import { createClient } from "redis"
-// import cors from 'cors';
-// import { Configuration, OpenAIAPI } from 'openai';
-// import http, { IncomingMessage } from 'http';
 
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { HumanChatMessage } from "langchain/schema";
 //@ts-ignore
 import ChatRoom from '../models/chatRoom.model'
-// const ChatRoom = require('../models/ChatRoom.js')
+import Chatbot from "../models/Chatbot";
 
 const template = `Assistant named Zeke is a large language model trained by Shell.
 
@@ -36,33 +28,6 @@ dotenv.config();
 
 const getGPTResponse = async (req: Request, res: Response, next: any) => {
   console.log("QUERY S ",req.header('private-key'));
-  // const req_token = req.header('authorization')
-  // const req_private_key = req.header('private-key')
-  // var user_details : any = {}
-  // var set_cookie = req.cookies
-  // var shortcodes = ['[hub-email]', '[hub-name]' , '[hub-ven_balance]', '[hub-phoneNumber]', '[hub-dateOfBirth]', '[hub-status]', '[hub-mobile]']
-  // if(set_cookie.cookieName != 'iset' && req_private_key && req_token) {
-  //   try {
-  //     var options = {
-  //       'method': 'GET',
-  //       'url': 'YOUR API ',
-  //       'headers': {
-  //         'Private-Key': req_private_key,
-  //         'Content-Type': 'application/json',
-  //         'Authorization' : req_token
-  //       }
-  //     };
-  //     user_details = await axios(options);
-  //     // console.log("USER DETAILS : ", user_details.data)
-  //     res.cookie('cookieName' , 'iset')
-  //     // var set_cookie = req.cookies
-  //     // console.log("Cookies ", set_cookie)
-  //   } catch (err) {
-  //     console.log("User Details Err ", err)
-  //   }
-  // } 
-
-  // console.log("Redis Value ", value)
 
   const query_prompt = req.query.message;
   if (query_prompt != undefined) {
@@ -72,18 +37,17 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
     console.log("HIT JOIN");
     try {
       console.log("ROOM ", req.body)
-      const { room, messages, user } = req.body;
+      const { room, messages, user, apiKey } = req.body;
       console.log("msgs ", messages, "room ", room , "user ", user );
       let query = { room: room };
       let update = {
         $addToSet: {
-          doc:"DocumentPath",
           users: [user],
           messages: [messages],
         }
       };
   
-      let options = { upsert: true, new: true, setDefaultsOnInsert: true };
+      let options = { upsert: true, new: true};
       const roomData = await ChatRoom.findOneAndUpdate(
         query,
         update,
@@ -93,12 +57,17 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
           // ... code
           console.log("User Msg Saved to Database : " , roomDataRes);
           // res.send("Holdup");
+          console.log("ERROR MONGOSSS ", err)
         }
       );
 
-      const txtFilename = "react-doc";
+      const chatbot = await Chatbot.findOne({apiKey: apiKey})
+      console.log("CHAT BOT", chatbot)
+
+      // const txtFilename = "zerodha-outputs.txt";
+      const txtFilename = `${chatbot.filename}`;
       const question = query_prompt;
-      const txtPath = `./${txtFilename}.txt`;
+      const txtPath = `./${txtFilename}`;
       const VECTOR_STORE_PATH = `./${txtFilename}.index`;
 
       const model = new OpenAI({});
@@ -112,6 +81,7 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
           new OpenAIEmbeddings()
         );
       } else {
+        try {
         const text = fs.readFileSync(txtPath, "utf8");
         const textSplitter = new RecursiveCharacterTextSplitter({
           chunkSize: 1000
@@ -119,6 +89,10 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
         const docs = await textSplitter.createDocuments([text]);
         vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings());
         await vectorStore.save(VECTOR_STORE_PATH);
+        } catch(err) {
+          console.log("OPEN AI ERR ", err)
+        }
+
       }
 
       const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
@@ -127,7 +101,7 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
         query: question
       });
 
-      console.log({ chain_response });
+      // console.log({ chain_response });
 
 
       console.log("msgs ", messages, "room ", room , "user ", user );
@@ -145,13 +119,12 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
       query = { room: room };
       update = {
         $addToSet: {
-          doc: "DocumentPath",
           users: ["AI"],
           messages: [messageData],
         }
       };
   
-      options = { upsert: true, new: true, setDefaultsOnInsert: true };
+      options = { upsert: true, new: true };
       const aiData = await ChatRoom.findOneAndUpdate(
         query,
         update,
@@ -163,18 +136,10 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
           // res.send("Holdup");
         }
       );
-
-
-
       res.send({ message: chain_response?.text + "**" });
     } catch (err) {
       console.log("ERR ", err)
     }
-
-
-
-
-      
 
     //  } 
     // else {
@@ -203,16 +168,18 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
 const getChatRoomMessages =  async(req: Request, res: Response, next: any) => {
   console.log("Get msgs");
   try {
-    const { room } = req.body;
-    console.log(room, "msgs ");
-    let query = { room: room };
+    const { apiKey } = req.body;
+    // console.log(room, "msgs ");
+    const chatbot = await Chatbot.findOne({apiKey: apiKey})
+    console.log("CHAT BOT", chatbot)
+    let query = { room: chatbot?.room };
 
     const roomData = await ChatRoom.findOne(
       query,
-      (err, roomDataRes) => {
+      (err, chats) => {
         // ... code
-        console.log("room msgs " , roomDataRes);
-        res.send(roomDataRes);
+        console.log("room msgs " , chats);
+        res.send({chats, "room": chatbot?.room});
       }
     );
   } catch (err) {}
@@ -224,7 +191,7 @@ const streamGPTResponse = async (req: Request, res: Response, next: any) => {
   if (query_prompt != undefined) {
     // @ts-ignore
     if (query_prompt?.includes("Hub")) {
-      const txtFilename = "HubCultureAbout";
+      const txtFilename = "react-doc";
       const question = query_prompt;
       const txtPath = `./${txtFilename}.txt`;
       const VECTOR_STORE_PATH = `../../${txtFilename}.index`;

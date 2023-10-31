@@ -44,10 +44,10 @@ var apiRouter_1 = __importDefault(require("./routes/apiRouter"));
 var cors_1 = __importDefault(require("cors"));
 var cookie_parser_1 = __importDefault(require("cookie-parser"));
 var body_parser_1 = __importDefault(require("body-parser"));
-//@ts-ignore
+var multer_1 = __importDefault(require("multer"));
 var mongodb_1 = __importDefault(require("./db/mongodb"));
 var app = (0, express_1.default)();
-var port = 3000;
+var port = 4000;
 app.use((0, cors_1.default)());
 app.use((0, body_parser_1.default)());
 app.use((0, cookie_parser_1.default)());
@@ -59,6 +59,25 @@ app.get('/', function (req, res) { return __awaiter(void 0, void 0, void 0, func
         return [2 /*return*/];
     });
 }); });
+// Configure Multer to handle file uploads
+var storage = multer_1.default.diskStorage({
+    destination: function (req, file, cb) {
+        // Specify the directory where uploaded files will be saved
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        // Specify how uploaded files should be named
+        cb(null, file.originalname);
+    },
+});
+var upload = (0, multer_1.default)({ storage: storage });
+// Serve static files in the 'uploads' directory
+app.use('/uploads', express_1.default.static('uploads'));
+// Handle file upload POST request
+app.post('/upload', upload.single('file'), function (req, res) {
+    // The uploaded file can be accessed as req.file
+    res.send('File uploaded successfully');
+});
 app.use('/api', apiRouter_1.default);
 app.listen(port, function () {
     console.log("Server running on : ", port);

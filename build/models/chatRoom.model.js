@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var mongoose_1 = __importDefault(require("mongoose"));
 // const { Schema } = mongoose;
 var ChatRoomSchema = new mongoose_1.default.Schema({
-    room: { type: String, required: true, unique: true },
-    doc: { type: String, required: true },
+    room: { type: String, required: true },
     users: { type: Array, required: false },
     messages: { type: Array, required: false },
 }, { collection: 'chatroom' });

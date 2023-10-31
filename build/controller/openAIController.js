@@ -69,85 +69,91 @@ var embeddings_1 = require("langchain/embeddings");
 var text_splitter_1 = require("langchain/text_splitter");
 var fs = __importStar(require("fs"));
 var dotenv = __importStar(require("dotenv"));
-// import cors from 'cors';
-// import { Configuration, OpenAIAPI } from 'openai';
-// import http, { IncomingMessage } from 'http';
 var openai_1 = require("langchain/chat_models/openai");
 var schema_1 = require("langchain/schema");
 //@ts-ignore
 var chatRoom_model_1 = __importDefault(require("../models/chatRoom.model"));
-// const ChatRoom = require('../models/ChatRoom.js')
+var Chatbot_1 = __importDefault(require("../models/Chatbot"));
 var template = "Assistant named Zeke is a large language model trained by Shell.\n\nAssistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.\n\nAssistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.\n\nOverall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.\n\n{history}\nHuman: {input}\nAssistant:";
 dotenv.config();
 var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var query_prompt, _a, room, messages, user, query, update, options, roomData, txtFilename, question, txtPath, VECTOR_STORE_PATH, model, vectorStore, text, textSplitter, docs, chain, chain_response, messageData, aiData, err_1;
+    var query_prompt, _a, room, messages, user, apiKey, query, update, options, roomData, chatbot, txtFilename, question, txtPath, VECTOR_STORE_PATH, model, vectorStore, text, textSplitter, docs, err_1, chain, chain_response, messageData, aiData, err_2;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 console.log("QUERY S ", req.header('private-key'));
                 query_prompt = req.query.message;
-                if (!(query_prompt != undefined)) return [3 /*break*/, 12];
+                if (!(query_prompt != undefined)) return [3 /*break*/, 14];
                 // @ts-ignore
                 // if (query_prompt.toString().toLowerCase().includes("hub")) {
                 console.log("HIT JOIN");
                 _b.label = 1;
             case 1:
-                _b.trys.push([1, 11, , 12]);
+                _b.trys.push([1, 13, , 14]);
                 console.log("ROOM ", req.body);
-                _a = req.body, room = _a.room, messages = _a.messages, user = _a.user;
+                _a = req.body, room = _a.room, messages = _a.messages, user = _a.user, apiKey = _a.apiKey;
                 console.log("msgs ", messages, "room ", room, "user ", user);
                 query = { room: room };
                 update = {
                     $addToSet: {
-                        doc: "DocumentPath",
                         users: [user],
                         messages: [messages],
                     }
                 };
-                options = { upsert: true, new: true, setDefaultsOnInsert: true };
+                options = { upsert: true, new: true };
                 return [4 /*yield*/, chatRoom_model_1.default.findOneAndUpdate(query, update, options, function (err, roomDataRes) {
                         // ... code
                         console.log("User Msg Saved to Database : ", roomDataRes);
                         // res.send("Holdup");
+                        console.log("ERROR MONGOSSS ", err);
                     })];
             case 2:
                 roomData = _b.sent();
-                txtFilename = "react-doc";
+                return [4 /*yield*/, Chatbot_1.default.findOne({ apiKey: apiKey })];
+            case 3:
+                chatbot = _b.sent();
+                console.log("CHAT BOT", chatbot);
+                txtFilename = "".concat(chatbot.filename);
                 question = query_prompt;
-                txtPath = "./".concat(txtFilename, ".txt");
+                txtPath = "./".concat(txtFilename);
                 VECTOR_STORE_PATH = "./".concat(txtFilename, ".index");
                 model = new llms_1.OpenAI({});
                 vectorStore = void 0;
-                if (!fs.existsSync(VECTOR_STORE_PATH)) return [3 /*break*/, 4];
+                if (!fs.existsSync(VECTOR_STORE_PATH)) return [3 /*break*/, 5];
                 //If the vector store file exists, load it into memory
                 console.log("Vector Exists..");
                 return [4 /*yield*/, vectorstores_1.HNSWLib.load(VECTOR_STORE_PATH, new embeddings_1.OpenAIEmbeddings())];
-            case 3:
-                vectorStore = _b.sent();
-                return [3 /*break*/, 8];
             case 4:
+                vectorStore = _b.sent();
+                return [3 /*break*/, 10];
+            case 5:
+                _b.trys.push([5, 9, , 10]);
                 text = fs.readFileSync(txtPath, "utf8");
                 textSplitter = new text_splitter_1.RecursiveCharacterTextSplitter({
                     chunkSize: 1000
                 });
                 return [4 /*yield*/, textSplitter.createDocuments([text])];
-            case 5:
+            case 6:
                 docs = _b.sent();
                 return [4 /*yield*/, vectorstores_1.HNSWLib.fromDocuments(docs, new embeddings_1.OpenAIEmbeddings())];
-            case 6:
+            case 7:
                 vectorStore = _b.sent();
                 return [4 /*yield*/, vectorStore.save(VECTOR_STORE_PATH)];
-            case 7:
-                _b.sent();
-                _b.label = 8;
             case 8:
+                _b.sent();
+                return [3 /*break*/, 10];
+            case 9:
+                err_1 = _b.sent();
+                console.log("OPEN AI ERR ", err_1);
+                return [3 /*break*/, 10];
+            case 10:
                 chain = chains_1.RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
                 return [4 /*yield*/, chain.call({
                         query: question
                     })];
-            case 9:
+            case 11:
                 chain_response = _b.sent();
-                console.log({ chain_response: chain_response });
+                // console.log({ chain_response });
                 console.log("msgs ", messages, "room ", room, "user ", user);
                 messageData = {
                     room: "Test",
@@ -160,53 +166,55 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                 query = { room: room };
                 update = {
                     $addToSet: {
-                        doc: "DocumentPath",
                         users: ["AI"],
                         messages: [messageData],
                     }
                 };
-                options = { upsert: true, new: true, setDefaultsOnInsert: true };
+                options = { upsert: true, new: true };
                 return [4 /*yield*/, chatRoom_model_1.default.findOneAndUpdate(query, update, options, function (err, roomDataRes) {
                         // ... code
                         console.log("User Msg Saved to Database : ", roomDataRes);
                         // res.send("Holdup");
                     })];
-            case 10:
+            case 12:
                 aiData = _b.sent();
                 res.send({ message: (chain_response === null || chain_response === void 0 ? void 0 : chain_response.text) + "**" });
-                return [3 /*break*/, 12];
-            case 11:
-                err_1 = _b.sent();
-                console.log("ERR ", err_1);
-                return [3 /*break*/, 12];
-            case 12: return [2 /*return*/];
+                return [3 /*break*/, 14];
+            case 13:
+                err_2 = _b.sent();
+                console.log("ERR ", err_2);
+                return [3 /*break*/, 14];
+            case 14: return [2 /*return*/];
         }
     });
 }); };
 var getChatRoomMessages = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var room, query, roomData, err_2;
+    var apiKey, chatbot_1, query, roomData, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 console.log("Get msgs");
                 _a.label = 1;
             case 1:
-                _a.trys.push([1, 3, , 4]);
-                room = req.body.room;
-                console.log(room, "msgs ");
-                query = { room: room };
-                return [4 /*yield*/, chatRoom_model_1.default.findOne(query, function (err, roomDataRes) {
-                        // ... code
-                        console.log("room msgs ", roomDataRes);
-                        res.send(roomDataRes);
-                    })];
+                _a.trys.push([1, 4, , 5]);
+                apiKey = req.body.apiKey;
+                return [4 /*yield*/, Chatbot_1.default.findOne({ apiKey: apiKey })];
             case 2:
-                roomData = _a.sent();
-                return [3 /*break*/, 4];
+                chatbot_1 = _a.sent();
+                console.log("CHAT BOT", chatbot_1);
+                query = { room: chatbot_1 === null || chatbot_1 === void 0 ? void 0 : chatbot_1.room };
+                return [4 /*yield*/, chatRoom_model_1.default.findOne(query, function (err, chats) {
+                        // ... code
+                        console.log("room msgs ", chats);
+                        res.send({ chats: chats, "room": chatbot_1 === null || chatbot_1 === void 0 ? void 0 : chatbot_1.room });
+                    })];
             case 3:
-                err_2 = _a.sent();
-                return [3 /*break*/, 4];
-            case 4: return [2 /*return*/];
+                roomData = _a.sent();
+                return [3 /*break*/, 5];
+            case 4:
+                err_3 = _a.sent();
+                return [3 /*break*/, 5];
+            case 5: return [2 /*return*/];
         }
     });
 }); };
@@ -219,7 +227,7 @@ var streamGPTResponse = function (req, res, next) { return __awaiter(void 0, voi
                 query_prompt = req.query.message;
                 if (!(query_prompt != undefined)) return [3 /*break*/, 10];
                 if (!(query_prompt === null || query_prompt === void 0 ? void 0 : query_prompt.includes("Hub"))) return [3 /*break*/, 8];
-                txtFilename = "HubCultureAbout";
+                txtFilename = "react-doc";
                 question = query_prompt;
                 txtPath = "./".concat(txtFilename, ".txt");
                 VECTOR_STORE_PATH = "../../".concat(txtFilename, ".index");
