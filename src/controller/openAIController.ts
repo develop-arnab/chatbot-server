@@ -6,13 +6,14 @@ import { OpenAIEmbeddings } from "langchain/embeddings";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
-
+import authMiddleware from '../middlewares/authMiddleware'
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { HumanChatMessage } from "langchain/schema";
 //@ts-ignore
 import ChatRoom from '../models/chatRoom.model'
 import Chatbot from "../models/Chatbot";
-
+const JWT_SECRET = "{8367E87C-B794-4A04-89DD-15FE7FDBFF78}";
+const JWT_REFRESH_SECRET = "{asdfasdfdsfa-B794-4A04-89DD-15FE7FDBFF78}";
 const template = `Assistant named Zeke is a large language model trained by Shell.
 
 Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
@@ -185,6 +186,34 @@ const getChatRoomMessages =  async(req: Request, res: Response, next: any) => {
   } catch (err) {}
 }
 
+const getChatbotInfo =  async(req: Request, res: Response, next: any) => {
+  const token = req.header('authorization');
+  const user = await authMiddleware.validateToken(token, JWT_SECRET);
+  console.log("Get msgs", user);
+
+  try {
+    // const { apiKey } = req.body;
+    // console.log(room, "msgs ");
+    const chatbot = await Chatbot.findOne({owner_id: user?.name})
+    console.log("CHAT BOT", chatbot)
+     res.send({"Chatbot" : chatbot})
+
+    // let query = { room: chatbot?.room };
+
+    // const chatbot_info = await ChatRoom.findOne(
+    //   query,
+    //   (err, chats) => {
+    //     // ... code
+    //     console.log("room msgs " , chats);
+    //     res.send({chats, "room": chatbot?.room});
+    //   }
+    // );
+  } catch (err) {
+ res.send({"Error" : err})
+
+  }
+}
+
 const streamGPTResponse = async (req: Request, res: Response, next: any) => {
   console.log("QUERY S ", typeof req.query.message);
   const query_prompt = req.query.message;
@@ -267,5 +296,6 @@ export default {
   getGPTResponse,
   streamGPTResponse,
   getDalleResponse,
-  getChatRoomMessages
+  getChatRoomMessages,
+  getChatbotInfo
 };

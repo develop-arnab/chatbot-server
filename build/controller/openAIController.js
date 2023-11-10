@@ -69,11 +69,14 @@ var embeddings_1 = require("langchain/embeddings");
 var text_splitter_1 = require("langchain/text_splitter");
 var fs = __importStar(require("fs"));
 var dotenv = __importStar(require("dotenv"));
+var authMiddleware_1 = __importDefault(require("../middlewares/authMiddleware"));
 var openai_1 = require("langchain/chat_models/openai");
 var schema_1 = require("langchain/schema");
 //@ts-ignore
 var chatRoom_model_1 = __importDefault(require("../models/chatRoom.model"));
 var Chatbot_1 = __importDefault(require("../models/Chatbot"));
+var JWT_SECRET = "{8367E87C-B794-4A04-89DD-15FE7FDBFF78}";
+var JWT_REFRESH_SECRET = "{asdfasdfdsfa-B794-4A04-89DD-15FE7FDBFF78}";
 var template = "Assistant named Zeke is a large language model trained by Shell.\n\nAssistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.\n\nAssistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.\n\nOverall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.\n\n{history}\nHuman: {input}\nAssistant:";
 dotenv.config();
 var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
@@ -81,7 +84,7 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
-                console.log("QUERY S ", req.header('private-key'));
+                console.log("QUERY S ", req.header("private-key"));
                 query_prompt = req.query.message;
                 if (!(query_prompt != undefined)) return [3 /*break*/, 14];
                 // @ts-ignore
@@ -97,7 +100,7 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                 update = {
                     $addToSet: {
                         users: [user],
-                        messages: [messages],
+                        messages: [messages]
                     }
                 };
                 options = { upsert: true, new: true };
@@ -167,7 +170,7 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                 update = {
                     $addToSet: {
                         users: ["AI"],
-                        messages: [messageData],
+                        messages: [messageData]
                     }
                 };
                 options = { upsert: true, new: true };
@@ -206,13 +209,40 @@ var getChatRoomMessages = function (req, res, next) { return __awaiter(void 0, v
                 return [4 /*yield*/, chatRoom_model_1.default.findOne(query, function (err, chats) {
                         // ... code
                         console.log("room msgs ", chats);
-                        res.send({ chats: chats, "room": chatbot_1 === null || chatbot_1 === void 0 ? void 0 : chatbot_1.room });
+                        res.send({ chats: chats, room: chatbot_1 === null || chatbot_1 === void 0 ? void 0 : chatbot_1.room });
                     })];
             case 3:
                 roomData = _a.sent();
                 return [3 /*break*/, 5];
             case 4:
                 err_3 = _a.sent();
+                return [3 /*break*/, 5];
+            case 5: return [2 /*return*/];
+        }
+    });
+}); };
+var getChatbotInfo = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var token, user, chatbot, err_4;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                token = req.header("authorization");
+                return [4 /*yield*/, authMiddleware_1.default.validateToken(token, JWT_SECRET)];
+            case 1:
+                user = _a.sent();
+                console.log("Get msgs", user);
+                _a.label = 2;
+            case 2:
+                _a.trys.push([2, 4, , 5]);
+                return [4 /*yield*/, Chatbot_1.default.findOne({ owner_id: user === null || user === void 0 ? void 0 : user.name })];
+            case 3:
+                chatbot = _a.sent();
+                console.log("CHAT BOT", chatbot);
+                res.send({ Chatbot: chatbot });
+                return [3 /*break*/, 5];
+            case 4:
+                err_4 = _a.sent();
+                res.send({ Error: err_4 });
                 return [3 /*break*/, 5];
             case 5: return [2 /*return*/];
         }
@@ -306,5 +336,6 @@ exports.default = {
     getGPTResponse: getGPTResponse,
     streamGPTResponse: streamGPTResponse,
     getDalleResponse: getDalleResponse,
-    getChatRoomMessages: getChatRoomMessages
+    getChatRoomMessages: getChatRoomMessages,
+    getChatbotInfo: getChatbotInfo
 };

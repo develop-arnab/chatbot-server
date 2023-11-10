@@ -12,6 +12,7 @@ router.post('/create-chatbot', authMiddleware.protected_auth, chatbotController.
 
 router.post('/chatbot', openAIController.getGPTResponse);
 router.post('/chatroom/messages', openAIController.getChatRoomMessages);
+router.get('/chatbot-info', openAIController.getChatbotInfo);
 router.get('/chatbot-stream', openAIController.streamGPTResponse);
 router.get('/imagine', openAIController.getDalleResponse);
 

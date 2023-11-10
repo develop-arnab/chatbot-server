@@ -14,6 +14,7 @@ router.post('/login', userController_1.default.loginUser);
 router.post('/create-chatbot', authMiddleware_1.default.protected_auth, chatbotController_1.default.createChatBot);
 router.post('/chatbot', openAIController_1.default.getGPTResponse);
 router.post('/chatroom/messages', openAIController_1.default.getChatRoomMessages);
+router.get('/chatbot-info', openAIController_1.default.getChatbotInfo);
 router.get('/chatbot-stream', openAIController_1.default.streamGPTResponse);
 router.get('/imagine', openAIController_1.default.getDalleResponse);
 // module.exports = router;
