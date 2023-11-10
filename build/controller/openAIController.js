@@ -84,15 +84,15 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
-                console.log("QUERY S ", req.header("private-key"));
+                console.log("QUERY S ", req.header('private-key'));
                 query_prompt = req.query.message;
-                if (!(query_prompt != undefined)) return [3 /*break*/, 14];
+                if (!(query_prompt != undefined)) return [3 /*break*/, 13];
                 // @ts-ignore
                 // if (query_prompt.toString().toLowerCase().includes("hub")) {
                 console.log("HIT JOIN");
                 _b.label = 1;
             case 1:
-                _b.trys.push([1, 13, , 14]);
+                _b.trys.push([1, 12, , 13]);
                 console.log("ROOM ", req.body);
                 _a = req.body, room = _a.room, messages = _a.messages, user = _a.user, apiKey = _a.apiKey;
                 console.log("msgs ", messages, "room ", room, "user ", user);
@@ -100,7 +100,7 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                 update = {
                     $addToSet: {
                         users: [user],
-                        messages: [messages]
+                        messages: [messages],
                     }
                 };
                 options = { upsert: true, new: true };
@@ -122,39 +122,33 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                 VECTOR_STORE_PATH = "./".concat(txtFilename, ".index");
                 model = new llms_1.OpenAI({});
                 vectorStore = void 0;
-                if (!fs.existsSync(VECTOR_STORE_PATH)) return [3 /*break*/, 5];
-                //If the vector store file exists, load it into memory
-                console.log("Vector Exists..");
-                return [4 /*yield*/, vectorstores_1.HNSWLib.load(VECTOR_STORE_PATH, new embeddings_1.OpenAIEmbeddings())];
+                _b.label = 4;
             case 4:
-                vectorStore = _b.sent();
-                return [3 /*break*/, 10];
-            case 5:
-                _b.trys.push([5, 9, , 10]);
+                _b.trys.push([4, 8, , 9]);
                 text = fs.readFileSync(txtPath, "utf8");
                 textSplitter = new text_splitter_1.RecursiveCharacterTextSplitter({
                     chunkSize: 1000
                 });
                 return [4 /*yield*/, textSplitter.createDocuments([text])];
-            case 6:
+            case 5:
                 docs = _b.sent();
                 return [4 /*yield*/, vectorstores_1.HNSWLib.fromDocuments(docs, new embeddings_1.OpenAIEmbeddings())];
-            case 7:
+            case 6:
                 vectorStore = _b.sent();
                 return [4 /*yield*/, vectorStore.save(VECTOR_STORE_PATH)];
-            case 8:
+            case 7:
                 _b.sent();
-                return [3 /*break*/, 10];
-            case 9:
+                return [3 /*break*/, 9];
+            case 8:
                 err_1 = _b.sent();
                 console.log("OPEN AI ERR ", err_1);
-                return [3 /*break*/, 10];
-            case 10:
+                return [3 /*break*/, 9];
+            case 9:
                 chain = chains_1.RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
                 return [4 /*yield*/, chain.call({
                         query: question
                     })];
-            case 11:
+            case 10:
                 chain_response = _b.sent();
                 // console.log({ chain_response });
                 console.log("msgs ", messages, "room ", room, "user ", user);
@@ -170,7 +164,7 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                 update = {
                     $addToSet: {
                         users: ["AI"],
-                        messages: [messageData]
+                        messages: [messageData],
                     }
                 };
                 options = { upsert: true, new: true };
@@ -179,15 +173,15 @@ var getGPTResponse = function (req, res, next) { return __awaiter(void 0, void 0
                         console.log("User Msg Saved to Database : ", roomDataRes);
                         // res.send("Holdup");
                     })];
-            case 12:
+            case 11:
                 aiData = _b.sent();
                 res.send({ message: (chain_response === null || chain_response === void 0 ? void 0 : chain_response.text) + "**" });
-                return [3 /*break*/, 14];
-            case 13:
+                return [3 /*break*/, 13];
+            case 12:
                 err_2 = _b.sent();
                 console.log("ERR ", err_2);
-                return [3 /*break*/, 14];
-            case 14: return [2 /*return*/];
+                return [3 /*break*/, 13];
+            case 13: return [2 /*return*/];
         }
     });
 }); };
@@ -209,7 +203,7 @@ var getChatRoomMessages = function (req, res, next) { return __awaiter(void 0, v
                 return [4 /*yield*/, chatRoom_model_1.default.findOne(query, function (err, chats) {
                         // ... code
                         console.log("room msgs ", chats);
-                        res.send({ chats: chats, room: chatbot_1 === null || chatbot_1 === void 0 ? void 0 : chatbot_1.room });
+                        res.send({ chats: chats, "room": chatbot_1 === null || chatbot_1 === void 0 ? void 0 : chatbot_1.room });
                     })];
             case 3:
                 roomData = _a.sent();
@@ -226,7 +220,7 @@ var getChatbotInfo = function (req, res, next) { return __awaiter(void 0, void 0
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                token = req.header("authorization");
+                token = req.header('authorization');
                 return [4 /*yield*/, authMiddleware_1.default.validateToken(token, JWT_SECRET)];
             case 1:
                 user = _a.sent();
@@ -238,11 +232,11 @@ var getChatbotInfo = function (req, res, next) { return __awaiter(void 0, void 0
             case 3:
                 chatbot = _a.sent();
                 console.log("CHAT BOT", chatbot);
-                res.send({ Chatbot: chatbot });
+                res.send({ "Chatbot": chatbot });
                 return [3 /*break*/, 5];
             case 4:
                 err_4 = _a.sent();
-                res.send({ Error: err_4 });
+                res.send({ "Error": err_4 });
                 return [3 /*break*/, 5];
             case 5: return [2 /*return*/];
         }

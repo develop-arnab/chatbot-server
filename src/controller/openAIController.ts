@@ -74,14 +74,14 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
       const model = new OpenAI({});
 
       let vectorStore;
-      if (fs.existsSync(VECTOR_STORE_PATH)) {
-        //If the vector store file exists, load it into memory
-        console.log("Vector Exists..");
-        vectorStore = await HNSWLib.load(
-          VECTOR_STORE_PATH,
-          new OpenAIEmbeddings()
-        );
-      } else {
+      // if (fs.existsSync(VECTOR_STORE_PATH)) {
+      //   //If the vector store file exists, load it into memory
+      //   console.log("Vector Exists..");
+      //   vectorStore = await HNSWLib.load(
+      //     VECTOR_STORE_PATH,
+      //     new OpenAIEmbeddings()
+      //   );
+      // } else {
         try {
         const text = fs.readFileSync(txtPath, "utf8");
         const textSplitter = new RecursiveCharacterTextSplitter({
@@ -94,7 +94,7 @@ const getGPTResponse = async (req: Request, res: Response, next: any) => {
           console.log("OPEN AI ERR ", err)
         }
 
-      }
+      // }
 
       const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
 
